@@ -1,0 +1,15 @@
+[project]
+name = "frontend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.13.3",
+    "pytz>=2026.1.post1",
+    "streamlit>=1.56.0",
+    "shared"
+]
+
+[tool.uv.sources]
+shared = { workspace=true }
