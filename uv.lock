@@ -189,6 +189,7 @@ name = "frontend"
 version = "0.1.0"
 source = { virtual = "frontend" }
 dependencies = [
+    { name = "pandas" },
     { name = "pydantic" },
     { name = "pytz" },
     { name = "shared" },
@@ -197,6 +198,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "pandas", specifier = ">=3.0.2" },
     { name = "pydantic", specifier = ">=2.13.3" },
     { name = "pytz", specifier = ">=2026.1.post1" },
     { name = "shared", editable = "shared" },

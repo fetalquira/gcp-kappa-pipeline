@@ -3,10 +3,21 @@ import json
 from datetime import datetime, timedelta
 import pytz
 from pydantic import ValidationError
+import pandas as pd
 
 # Import your Data Contract
 # Note: Adjust the import path based on your folder structure (e.g., from shared.schemas import ...)
-from shared import OrderModel, OrderItem, Address, OrderType, BakeryProduct
+from shared import (
+    OrderModel, 
+    OrderItem,
+    Address,
+    OrderType,
+    BakeryProduct,
+    PRODUCT_PRICES,
+    ALLOWED_VARIANTS,
+    EnsaymadaVariants
+)
+
 
 # --- 1. INITIALIZE SESSION STATE (The Shopping Cart) ---
 if "cart" not in st.session_state:
@@ -19,16 +30,28 @@ st.markdown("Submit your order below. All orders require a strict 2-day lead tim
 
 # --- 3. THE CART MANAGEMENT (Outside the main form) ---
 st.subheader("1. Add Items to Cart")
-col1, col2, col3, col4 = st.columns(4)
+col1, col2 = st.columns(2)
+col3, col4 = st.columns(2)
 
 with col1:
-    selected_product = st.selectbox("Product", [p.value for p in BakeryProduct])
+    selected_product = st.selectbox("Product", [p.value for p in BakeryProduct], index=0, help="You can only choose from our official menu.")
+    product_enum_member = next(p for p in BakeryProduct if p.value == selected_product)
 with col2:
-    selected_variant = st.text_input("Variant (e.g., Cheese)", placeholder="Optional")
+    allowed_options = ALLOWED_VARIANTS.get(product_enum_member)
+    selected_variant = st.selectbox("Variant/Flavor", options=allowed_options, help="Create another item on the cart if you want diff. flavors.")
 with col3:
     selected_qty = st.number_input("Qty", min_value=1, step=1)
 with col4:
-    selected_price = st.number_input("Price (PHP)", min_value=0.0, step=50.0)
+    # AUTOMATIC PRICE LOOKUP
+    # We pull the price from our shared map
+    product_variants_prices = PRODUCT_PRICES.get(product_enum_member, {})
+    unit_price = product_variants_prices.get(selected_variant, 0.0)
+    
+    # Display it in a disabled number input so the user can see it but NOT change it
+    st.number_input("Unit Price (PHP)", value=unit_price, disabled=True)
+    
+    # Calculate Total for display
+    st.caption(f"Subtotal: PHP {unit_price * selected_qty:,.2f}")
 
 if st.button("➕ Add to Cart"):
     # Append to our session state memory
@@ -36,14 +59,53 @@ if st.button("➕ Add to Cart"):
         "product_name": selected_product,
         "variant": selected_variant if selected_variant else None,
         "quantity": selected_qty,
-        "price_per_qty": selected_price
+        "price_per_qty": unit_price
     })
-    st.success(f"Added {selected_qty}x {selected_product} to cart!")
+    st.success(f"Added {selected_qty} x {selected_product} to cart!")
 
-# Display current cart
+# --- 3. DISPLAY CURRENT CART ---
 if st.session_state.cart:
-    st.write("**Current Cart:**")
-    st.dataframe(st.session_state.cart)
+    st.write("**🛒 Your Shopping Cart:**")
+    
+    # 1. Convert the list of dicts to a DataFrame
+    df_cart = pd.DataFrame(st.session_state.cart)
+    
+    # 2. Calculate the Subtotal column
+    df_cart['Subtotal'] = df_cart['quantity'] * df_cart['price_per_qty']
+    
+    # 3. Rename columns for the UI (Human Friendly)
+    # format: "Original Key": "New Header"
+    rename_map = {
+        "product_name": "Product",
+        "variant": "Variant/Flavor",
+        "quantity": "Qty",
+        "price_per_qty": "Unit Price (PHP)"
+    }
+    
+    # We create a display version of the dataframe
+    df_display = df_cart.rename(columns=rename_map)
+    
+    # 4. Reorder columns to make 'Subtotal' the last one
+    column_order = ["Product", "Variant/Flavor", "Qty", "Unit Price (PHP)", "Subtotal"]
+    df_display = df_display[column_order]
+
+    # 5. Render the table with formatting
+    st.dataframe(
+        df_display.style.format({
+            "Unit Price (PHP)": "₱{:,.2f}",
+            "Subtotal": "₱{:,.2f}"
+        }),
+        width='stretch',
+        hide_index=True # Hides the 0, 1, 2 row numbers
+    )
+    
+    # 6. Show the Grand Total
+    grand_total = df_cart['Subtotal'].sum()
+    st.markdown(f"### **Grand Total: ₱{grand_total:,.2f}**")
+    
+    if st.button("🗑️ Clear Cart"):
+        st.session_state.cart = []
+        st.rerun()
 else:
     st.info("Your cart is empty. Add items to proceed.")
 
@@ -79,7 +141,7 @@ with st.form("checkout_form"):
         with addr_col2:
             brgy = st.text_input("Barangay")
             st_name = st.text_input("Street")
-            unit = st.text_input("Unit/Block No.", placeholder="Optional")
+            unit = st.text_input("Unit/Block No.")
 
     st.markdown("**Schedule & Notes**")
     col_date, col_time = st.columns(2)
