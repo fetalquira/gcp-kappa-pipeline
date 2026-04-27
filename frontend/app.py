@@ -18,7 +18,7 @@ from google.oauth2 import service_account
 # --- GCP CONFIG ---
 # Replace with your actual Project ID from the GCP Console
 PROJECT_ID = os.getenv("PROJECT_ID")
-gcp_json_str = os.getenv("GCP_KEY")
+gcp_json_str = os.getenv("GOOGLE_CREDENTIALS")
 TOPIC_ID = "incoming-orders"
 
 if gcp_json_str:

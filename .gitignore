@@ -10,3 +10,13 @@ scratch/
 
 # Virtual environments
 .venv
+
+# Terraform local state and plugins
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+
+# Terraform variables (where you might store secrets)
+*.tfvars
+*.tfvars.json
