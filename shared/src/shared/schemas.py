@@ -8,6 +8,7 @@ from pydantic import (
 from typing import Dict, List, Optional
 from enum import Enum
 from datetime import date, time, timedelta
+from uuid import UUID, uuid4
 
 # --- ENUMS (For Strict Dropdowns) ---
 class OrderType(str, Enum):
@@ -84,6 +85,7 @@ class Address(BaseModel):
 
 # --- MAIN DATA CONTRACT ---
 class OrderModel(BaseModel):
+    transaction_id: UUID = Field(default_factory=uuid4)
     customer_name: str = Field(..., min_length=2)
     # Regex enforces exactly 11 digits starting with 09, or +639 format
     contact_number: str = Field(..., pattern=r"^(09|\+639)\d{9}$")

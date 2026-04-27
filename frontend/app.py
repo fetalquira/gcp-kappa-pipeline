@@ -4,20 +4,43 @@ from datetime import datetime, timedelta
 import pytz
 from pydantic import ValidationError
 import pandas as pd
-
-# Import your Data Contract
-# Note: Adjust the import path based on your folder structure (e.g., from shared.schemas import ...)
+import os
 from shared import (
     OrderModel, 
-    OrderItem,
-    Address,
     OrderType,
     BakeryProduct,
     PRODUCT_PRICES,
-    ALLOWED_VARIANTS,
-    EnsaymadaVariants
+    ALLOWED_VARIANTS
 )
+from google.cloud import pubsub_v1
+from google.oauth2 import service_account
 
+# --- GCP CONFIG ---
+# Replace with your actual Project ID from the GCP Console
+PROJECT_ID = os.getenv("PROJECT_ID")
+gcp_json_str = os.getenv("GCP_KEY")
+TOPIC_ID = "incoming-orders"
+
+if gcp_json_str:
+    try:
+        # 2. Parse the string into a Python Dictionary
+        info = json.loads(gcp_json_str)
+        
+        # 3. Create the Credentials object directly from the dictionary
+        # This is the "In-Memory" method that doesn't need a file on disk
+        credentials = service_account.Credentials.from_service_account_info(info)
+        
+        # 4. Pass the credentials explicitly to the Publisher
+        publisher = pubsub_v1.PublisherClient(credentials=credentials)
+        
+    except Exception as e:
+        st.error(f"Failed to parse GCP credentials: {e}")
+        st.stop()
+else:
+    st.error("GCP_CREDENTIALS_JSON not found. Use 'op run' to start the app.")
+    st.stop()
+
+topic_path = publisher.topic_path(PROJECT_ID, TOPIC_ID)
 
 # --- 1. INITIALIZE SESSION STATE (The Shopping Cart) ---
 if "cart" not in st.session_state:
@@ -185,11 +208,18 @@ if submit_button:
             # If this line succeeds, the data is 100% clean and valid.
             validated_order = OrderModel(**raw_payload)
             
-            # Print the clean JSON to the terminal (Mocking the Pub/Sub publish)
-            st.success("✅ Order Validated Successfully! Check your terminal for the JSON payload.")
-            print("\n--- NEW VALIDATED ORDER PAYLOAD ---")
-            print(validated_order.model_dump_json(indent=2))
-            print("-----------------------------------\n")
+            # 1. Convert our Pydantic object to a JSON string, then to Bytes
+            # Pub/Sub only sends bytes, not Python objects!
+            data_bytes = validated_order.model_dump_json().encode("utf-8")
+            
+            # 2. Publish to the Cloud
+            # We add an attribute 'origin' for filtering later
+            future = publisher.publish(topic_path, data=data_bytes, origin="streamlit-app")
+            
+            # 3. Wait for the confirmation from GCP
+            message_id = future.result() 
+            
+            st.success(f"✅ Order confirmed! Transaction ID: {validated_order.transaction_id}")
             
             # Clear the cart after successful submission
             st.session_state.cart = []
@@ -202,3 +232,6 @@ if submit_button:
                 field = " -> ".join([str(loc) for loc in error["loc"]])
                 msg = error["msg"]
                 st.warning(f"**{field}**: {msg}")
+
+        except Exception as e:
+            st.error(f"⚠️ Failed to send order to Cloud: {e}")
