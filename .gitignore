@@ -16,6 +16,7 @@ scratch/
 *.tfstate
 *.tfstate.backup
 .terraform.lock.hcl
+files/
 
 # Terraform variables (where you might store secrets)
 *.tfvars
