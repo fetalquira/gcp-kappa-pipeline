@@ -55,5 +55,6 @@ resource "google_cloudfunctions_function" "order_processor" {
 
   environment_variables = {
     PROJECT_ID = var.project_id
+    TARGET_DB_NAME = var.db_name
   }
 }
