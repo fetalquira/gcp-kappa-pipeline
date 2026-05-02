@@ -1,10 +1,15 @@
 from .schemas import (
-    OrderModel,
-    OrderItem,
-    Address,
+    OrderModel, 
     OrderType,
     BakeryProduct,
     PRODUCT_PRICES,
-    EnsaymadaVariants,
     ALLOWED_VARIANTS
 )
+
+__all__ = [
+    "OrderModel",
+    "OrderType",
+    "BakeryProduct",
+    "PRODUCT_PRICES",
+    "ALLOWED_VARIANTS"
+]

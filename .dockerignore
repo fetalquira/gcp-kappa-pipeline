@@ -1,0 +1,29 @@
+# .dockerignore
+
+# 1. Infrastructure (CRITICAL)
+infra/
+.terraform/
+terraform.tfstate*
+
+# 2. Python Junk
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+.venv/
+.pytest_cache/
+py.typed
+
+# 3. Environment & Secrets
+.env
+.env.tpl
+*.json
+*.key
+
+# 4. Irrelevant Source Code
+backend/
+docs/
+README.md
+
+# 5. Git
+.git
+.gitignore
