@@ -18,26 +18,21 @@ from google.oauth2 import service_account
 # --- GCP CONFIG ---
 # Replace with your actual Project ID from the GCP Console
 PROJECT_ID = os.getenv("PROJECT_ID")
-gcp_json_str = os.getenv("GOOGLE_CREDENTIALS")
 TOPIC_ID = "incoming-orders"
 
-if gcp_json_str:
-    try:
-        # 2. Parse the string into a Python Dictionary
-        info = json.loads(gcp_json_str)
-        
-        # 3. Create the Credentials object directly from the dictionary
-        # This is the "In-Memory" method that doesn't need a file on disk
-        credentials = service_account.Credentials.from_service_account_info(info)
-        
-        # 4. Pass the credentials explicitly to the Publisher
-        publisher = pubsub_v1.PublisherClient(credentials=credentials)
-        
-    except Exception as e:
-        st.error(f"Failed to parse GCP credentials: {e}")
-        st.stop()
-else:
-    st.error("GOOGLE_CREDENTIALS not found. Please provide env variable to work.")
+if not PROJECT_ID:
+    st.error("PROJECT_ID not found in environment variables.")
+    st.stop()
+
+
+try:
+    # 2. This is the "Magic" line. 
+    # It automatically finds credentials in Cloud Run via the Metadata Server.
+    # No JSON parsing, no credential objects, no keys required.
+    publisher = pubsub_v1.PublisherClient()
+    
+except Exception as e:
+    st.error(f"Failed to initialize Publisher: {e}")
     st.stop()
 
 topic_path = publisher.topic_path(PROJECT_ID, TOPIC_ID)
