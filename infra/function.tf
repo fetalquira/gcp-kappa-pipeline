@@ -48,6 +48,9 @@ resource "google_cloudfunctions_function" "order_processor" {
   source_archive_object = google_storage_bucket_object.zip_upload.name
   entry_point           = "process_order" # Must match the def in main.py
 
+  # SECURITY FEATURE: Swap the Editor account for your new Worker account
+  service_account_email = google_service_account.backend_sa.email
+  
   event_trigger {
     event_type = "google.pubsub.topic.publish"
     resource   = google_pubsub_topic.bakery_orders.id

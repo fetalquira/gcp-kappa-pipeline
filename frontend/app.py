@@ -37,7 +37,7 @@ if gcp_json_str:
         st.error(f"Failed to parse GCP credentials: {e}")
         st.stop()
 else:
-    st.error("GCP_CREDENTIALS_JSON not found. Use 'op run' to start the app.")
+    st.error("GOOGLE_CREDENTIALS not found. Please provide env variable to work.")
     st.stop()
 
 topic_path = publisher.topic_path(PROJECT_ID, TOPIC_ID)
